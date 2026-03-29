@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// 記事モデル
+model Post {
+  id       String   @id @default(cuid())
+  postNo   String   @unique
+  title    String
+  contents String   @db.Text
+  postDate DateTime
+
+  // リレーション
+  categories Category[] @relation("PostToCategory")
+  tags       Tag[]      @relation("PostToTag")
+
+  @@map("posts")
+}
+
+// カテゴリーモデル
+model Category {
+  id    Int    @id
+  name  String
+  // リレーション
+  posts Post[] @relation("PostToCategory")
+
+  @@map("categories")
+}
+
+// タグモデル
+model Tag {
+  id   Int    @id
+  name String
+  // リレーション
+  posts Post[] @relation("PostToTag")
+
+  @@map("tags")
+}

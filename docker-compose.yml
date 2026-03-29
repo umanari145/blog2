@@ -1,18 +1,17 @@
 services:
-  frontend:
+  app:
     container_name: b-fro
     build:
-      context: ./frontend
+      context: ./
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/prisma:/app/prisma
+      - ./app:/app
     environment:
       - WATCHPACK_POLLING=true
       - DATABASE_URL=mysql://blog_user:blog_passw0rd!@db:3306/blog
+    tty: true
     depends_on:
       db:
         condition: service_healthy
