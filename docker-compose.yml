@@ -1,0 +1,50 @@
+services:
+  frontend:
+    container_name: b-fro
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/prisma:/app/prisma
+    environment:
+      - WATCHPACK_POLLING=true
+      - DATABASE_URL=mysql://blog_user:blog_passw0rd!@db:3306/blog
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: b-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: Root_passw0rd!
+      MYSQL_DATABASE: blog
+      MYSQL_USER: blog_user
+      MYSQL_PASSWORD: blog_passw0rd!
+      TZ: Asia/Tokyo
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: b-pmd
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: blog_user
+      PMA_PASSWORD: blog_passw0rd!
+    depends_on:
+      db:
+        condition: service_healthy
