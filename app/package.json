@@ -1,11 +1,17 @@
 {
+  "scripts": {
+    "convert:import": "tsx convert/import.ts"
+  },
   "dependencies": {
-    "@prisma/client": "^7.6.0"
+    "@prisma/adapter-mariadb": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "mariadb": "^3.5.2"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "dotenv": "^17.3.1",
     "prisma": "^7.6.0",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
 }
