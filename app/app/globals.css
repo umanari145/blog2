@@ -1,62 +1,61 @@
-:root {
-  --bg: #f6f5f2;
-  --surface: #ffffff;
-  --text: #1a1a1a;
-  --text-muted: #5c5c5c;
-  --border: #e2e0db;
-  --accent: #2563eb;
-  --accent-soft: #eff6ff;
-  --tag-bg: #f0efec;
-  --radius: 12px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --surface: #1c1c1c;
-    --text: #f0f0f0;
-    --text-muted: #9ca3af;
-    --border: #2e2e2e;
-    --accent: #60a5fa;
-    --accent-soft: #1e3a5f;
-    --tag-bg: #2a2a2a;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 24px rgba(0, 0, 0, 0.35);
+@layer base {
+  html {
+    @apply h-full scroll-smooth antialiased;
+  }
+  body {
+    @apply min-h-full bg-ink-50 text-ink-800 dark:bg-ink-900 dark:text-ink-100;
   }
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/**
+ * 2 カラムはプレーン CSS で固定（grid-column で右列＝サイドバーを明示）
+ */
+@layer components {
+  .app-shell {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
-html {
-  color-scheme: light dark;
-}
+  .site-sidebar {
+    display: none;
+  }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    "Hiragino Sans",
-    "Hiragino Kaku Gothic ProN",
-    "Noto Sans JP",
-    sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--text);
-  background: var(--bg);
-}
+  @media (min-width: 768px) {
+    .app-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 16rem;
+      grid-template-rows: minmax(0, 1fr);
+      align-items: stretch;
+    }
 
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
+    .app-shell-main {
+      grid-column: 1;
+      grid-row: 1;
+      min-width: 0;
+      min-height: 0;
+    }
 
-a:hover {
-  text-decoration: underline;
+    .site-sidebar {
+      grid-column: 2;
+      grid-row: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+      align-self: stretch;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .app-shell {
+      grid-template-columns: minmax(0, 1fr) 18rem;
+    }
+  }
 }
