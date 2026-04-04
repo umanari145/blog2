@@ -40,6 +40,18 @@ function loadJson<T>(relativeToConvertSrc: string): T {
   return JSON.parse(readFileSync(path, "utf-8")) as T;
 }
 
+const DEFAULT_TEST_POST_LIMIT = 20;
+
+function parsePostTestLimit(): number | undefined {
+  const argv = process.argv.slice(2);
+  const flag = argv.find((a) => a === "--test" || a.startsWith("--test="));
+  if (!flag) return undefined;
+  if (flag === "--test") return DEFAULT_TEST_POST_LIMIT;
+  const n = Number.parseInt(flag.slice("--test=".length), 10);
+  if (!Number.isFinite(n) || n < 1) return DEFAULT_TEST_POST_LIMIT;
+  return n;
+}
+
 async function main() {
   const labels = loadJson<LabelRow[]>("blog.labels.json");
 
@@ -71,7 +83,17 @@ async function main() {
     );
   }
 
-  const posts = loadJson<PostRow[]>("blog.posts.json");
+  const allPosts = loadJson<PostRow[]>("blog.posts.json");
+  const postTestLimit = parsePostTestLimit();
+  const posts =
+    postTestLimit !== undefined ? allPosts.slice(0, postTestLimit) : allPosts;
+
+  if (postTestLimit !== undefined) {
+    console.log(
+      `テストモード: posts は先頭 ${posts.length} 件のみ登録（全 ${allPosts.length} 件中）`,
+    );
+  }
+
   const total = posts.length;
   let done = 0;
 

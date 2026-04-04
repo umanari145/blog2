@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "convert:import": "tsx convert/import.ts"
+    "convert:import": "tsx convert/import.ts",
+    "convert:import:test": "tsx convert/import.ts --test"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.6.0",
