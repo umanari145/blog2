@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Environment (secrets)
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+
+# Prisma — generated client（schema の output 先）
+app/src/generated/prisma/
+
+# Build / cache
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vercel
+.vercel/
+
+# Test coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# VS Code（共有したい設定だけ追跡する場合）
+.vscode/*
+!.vscode/extensions.json
+
+# Docker（ローカル専用の上書き）
+docker-compose.override.yml

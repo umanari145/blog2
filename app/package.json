@@ -1,15 +1,23 @@
 {
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "convert:import": "tsx convert/import.ts",
     "convert:import:test": "tsx convert/import.ts --test"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.6.0",
     "@prisma/client": "^7.6.0",
-    "mariadb": "^3.5.2"
+    "mariadb": "^3.5.2",
+    "next": "^15.5.14",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "dotenv": "^17.3.1",
     "prisma": "^7.6.0",
     "tsx": "^4.21.0",
