@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getPostList } from "@/lib/data/posts";
 
 export const metadata: Metadata = {
@@ -50,7 +51,7 @@ export default async function PostsPage() {
             {loadError ? "—" : `${posts.length} 件を表示`}
           </span>
           <span className="inline-flex items-center rounded-full bg-accent-muted/90 px-3 py-1 text-xs font-medium text-accent-dark dark:bg-accent-dark/40 dark:text-accent-light">
-            詳細ページは未実装
+            カードから詳細へ
           </span>
         </div>
       </header>
@@ -82,52 +83,57 @@ export default async function PostsPage() {
         <ul className="flex flex-col gap-6 md:gap-8">
           {posts.map((post, index) => (
             <li key={post.id}>
-              <article
-                className="group relative overflow-hidden rounded-2xl border border-ink-200/90 bg-white/85 p-6 shadow-card backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-card-hover dark:border-ink-700/90 dark:bg-ink-800/60 dark:shadow-card-dark dark:hover:border-accent-light/25 dark:hover:shadow-[0_8px_40px_rgb(0_0_0_/_0.45)] md:p-8"
-                style={{ animationDelay: `${index * 40}ms` }}
+              <Link
+                href={`/posts/${encodeURIComponent(post.postNo)}`}
+                className="block rounded-2xl outline-none ring-accent focus-visible:ring-2"
               >
-                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/5 transition group-hover:bg-accent/10 dark:bg-accent-light/5 dark:group-hover:bg-accent-light/10" />
-                <div className="relative">
-                  <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500 dark:text-ink-400">
-                    <time
-                      dateTime={post.postDate.toISOString()}
-                      className="font-medium text-ink-600 dark:text-ink-300"
-                    >
-                      {formatDate(post.postDate)}
-                    </time>
-                    <span className="hidden sm:inline text-ink-300 dark:text-ink-600">
-                      ·
-                    </span>
-                    <span className="font-mono text-[11px] text-ink-400 dark:text-ink-500">
-                      {post.postNo}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-bold leading-snug tracking-tight text-ink-900 transition group-hover:text-accent-dark dark:text-ink-50 dark:group-hover:text-accent-light md:text-2xl">
-                    {post.title}
-                  </h2>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {post.categories.map((c) => (
-                      <span
-                        key={c.id}
-                        className="rounded-md bg-accent-muted/90 px-2.5 py-0.5 text-[11px] font-semibold text-accent-dark dark:bg-accent-dark/35 dark:text-accent-light"
+                <article
+                  className="group relative overflow-hidden rounded-2xl border border-ink-200/90 bg-white/85 p-6 shadow-card backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-card-hover dark:border-ink-700/90 dark:bg-ink-800/60 dark:shadow-card-dark dark:hover:border-accent-light/25 dark:hover:shadow-[0_8px_40px_rgb(0_0_0_/_0.45)] md:p-8"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                >
+                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/5 transition group-hover:bg-accent/10 dark:bg-accent-light/5 dark:group-hover:bg-accent-light/10" />
+                  <div className="relative">
+                    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500 dark:text-ink-400">
+                      <time
+                        dateTime={post.postDate.toISOString()}
+                        className="font-medium text-ink-600 dark:text-ink-300"
                       >
-                        {c.name}
+                        {formatDate(post.postDate)}
+                      </time>
+                      <span className="hidden sm:inline text-ink-300 dark:text-ink-600">
+                        ·
                       </span>
-                    ))}
-                    {post.tags.map((t) => (
-                      <span
-                        key={t.id}
-                        className="rounded-md bg-ink-100/90 px-2.5 py-0.5 text-[11px] font-medium text-ink-600 ring-1 ring-ink-200/80 dark:bg-ink-700/80 dark:text-ink-300 dark:ring-ink-600"
-                      >
-                        #{t.name}
+                      <span className="font-mono text-[11px] text-ink-400 dark:text-ink-500">
+                        {post.postNo}
                       </span>
-                    ))}
+                    </div>
+                    <h2 className="text-xl font-bold leading-snug tracking-tight text-ink-900 transition group-hover:text-accent-dark dark:text-ink-50 dark:group-hover:text-accent-light md:text-2xl">
+                      {post.title}
+                    </h2>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {post.categories.map((c) => (
+                        <span
+                          key={c.id}
+                          className="rounded-md bg-accent-muted/90 px-2.5 py-0.5 text-[11px] font-semibold text-accent-dark dark:bg-accent-dark/35 dark:text-accent-light"
+                        >
+                          {c.name}
+                        </span>
+                      ))}
+                      {post.tags.map((t) => (
+                        <span
+                          key={t.id}
+                          className="rounded-md bg-ink-100/90 px-2.5 py-0.5 text-[11px] font-medium text-ink-600 ring-1 ring-ink-200/80 dark:bg-ink-700/80 dark:text-ink-300 dark:ring-ink-600"
+                        >
+                          #{t.name}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="prose prose-sm prose-neutral mt-4 max-w-none leading-relaxed text-ink-600 dark:prose-invert dark:text-ink-400">
+                      {post.excerpt}
+                    </p>
                   </div>
-                  <p className="prose prose-sm prose-neutral mt-4 max-w-none leading-relaxed text-ink-600 dark:prose-invert dark:text-ink-400">
-                    {post.excerpt}
-                  </p>
-                </div>
-              </article>
+                </article>
+              </Link>
             </li>
           ))}
         </ul>
