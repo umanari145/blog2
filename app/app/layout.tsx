@@ -29,8 +29,8 @@ export default function RootLayout({
     <html lang="ja" className={`${noto.variable} h-full`}>
       <body className="font-sans flex min-h-dvh flex-col antialiased">
         <SiteMobileHeader />
-        <div className="app-shell">
-          <div className="app-shell-main flex min-h-0 min-w-0 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[minmax(0,1fr)_16rem] lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="flex min-h-0 min-w-0 flex-col">
             <main className="relative w-full min-w-0 flex-1 bg-mesh-light dark:bg-mesh-dark">
               <div className="min-h-full w-full bg-ink-50/35 dark:bg-ink-900/45">
                 {children}

@@ -9,7 +9,7 @@ const categoryLabels = ["技術メモ", "開発環境", "PHP"];
 
 export function SiteSidebar() {
   return (
-    <aside className="site-sidebar relative w-full border-l border-ink-200/80 bg-white/95 backdrop-blur-md dark:border-ink-700 dark:bg-ink-900/95">
+    <aside className="relative hidden min-h-0 w-full flex-col border-l border-ink-200/80 bg-white/95 backdrop-blur-md dark:border-ink-700 dark:bg-ink-900/95 md:flex">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-accent-muted/40 to-transparent dark:from-accent-dark/20" />
       <div className="relative flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto p-6 lg:p-8">
         <div>
