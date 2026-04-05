@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getPostList } from "./data";
+import { getPostList } from "@/lib/data/posts";
 
 export const metadata: Metadata = {
   title: "記事一覧",

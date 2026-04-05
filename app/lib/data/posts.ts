@@ -11,6 +11,7 @@ export type PostListItem = {
   tags: { id: number; name: string }[];
 };
 
+/** 記事一覧（サーバーコンポーネント・Route Handler 共通） */
 export async function getPostList(): Promise<PostListItem[]> {
   const prisma = getPrisma();
   const rows = await prisma.post.findMany({
