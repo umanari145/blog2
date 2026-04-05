@@ -2,6 +2,33 @@
 
 Next.js を想定したブログ／アプリ用リポジトリです。
 
+## ディレクトリ構成
+
+### リポジトリ直下（`blog2/`）
+
+| パス | 役割 |
+|------|------|
+| `Dockerfile` | アプリ用 Node コンテナのイメージ定義 |
+| `docker-compose.yml` | アプリ（`app`）・MySQL（`db`）・phpMyAdmin などの起動定義 |
+| `db/` | MySQL 向けの初期化 SQL。Compose では `db/init/` がコンテナの `docker-entrypoint-initdb.d` にマウントされるので、**初回起動時に自動実行したい SQL は `db/init/` 配下**に置く |
+| `app/` | **アプリケーションの本体**（Next.js・Prisma・スクリプト・設定の中心） |
+| `prisma/`・`src/`（ルート） | 現状は未使用のプレースホルダ。スキーマや生成クライアントは **`app/` 側**を参照 |
+
+### アプリプロジェクト（`app/` 配下・リポジトリルートからのパス）
+
+| パス | 役割 |
+|------|------|
+| `app/app/` | Next.js の **App Router**（`layout.tsx`・`page.tsx`・`posts/` など） |
+| `app/components/` | サイト共通 UI（サイドバー・フッター・モバイルヘッダーなど） |
+| `app/lib/` | 共通ロジック（例: `prisma.ts`・`postExcerpt.ts`） |
+| `app/prisma/` | **`schema.prisma`** と **`migrations/`** |
+| `app/prisma.config.ts` | Prisma CLI 用設定（接続 URL など） |
+| `app/convert/` | JSON から DB へ投入する `import.ts` と `convert/src/` の元データ |
+| `app/src/generated/prisma/` | `prisma generate` の出力（**.gitignore 対象**） |
+| `app/` 直下の各種設定 | `package.json`・`tsconfig.json`・`tailwind.config.ts`・`postcss.config.mjs`・`.env`（秘密情報はコミットしない） |
+
+作業するときは **`cd app`** してから `npm run dev` や `npx prisma` を実行する想定です。
+
 ## 技術スタック
 
 | カテゴリ | 技術 |
