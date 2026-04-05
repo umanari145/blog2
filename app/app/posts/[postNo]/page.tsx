@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { fetchPostDetailFromApi } from "@/lib/api/postDetail";
 import { excerptFromContents } from "@/lib/postExcerpt";
-import { getPostByPostNo } from "@/lib/data/posts";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,8 @@ type PageProps = {
   params: Promise<{ postNo: string }>;
 };
 
-function formatDate(d: Date) {
+function formatDate(isoOrDate: string | Date) {
+  const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
   const iso = d.toISOString().slice(0, 10);
   const parsed = new Date(`${iso}T12:00:00`);
   return new Intl.DateTimeFormat("ja-JP", {
@@ -21,21 +22,59 @@ function formatDate(d: Date) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { postNo } = await params;
-  const post = await getPostByPostNo(decodeURIComponent(postNo));
-  if (!post) {
-    return { title: "記事が見つかりません" };
+  const { postNo: raw } = await params;
+  const postNo = decodeURIComponent(raw);
+  try {
+    const post = await fetchPostDetailFromApi(postNo);
+    if (!post) {
+      return { title: "記事が見つかりません" };
+    }
+    return {
+      title: post.title,
+      description: excerptFromContents(post.contents, 120),
+    };
+  } catch {
+    return { title: "記事の取得に失敗しました" };
   }
-  return {
-    title: post.title,
-    description: excerptFromContents(post.contents, 120),
-  };
 }
 
 export default async function PostDetailPage({ params }: PageProps) {
   const { postNo: raw } = await params;
   const postNo = decodeURIComponent(raw);
-  const post = await getPostByPostNo(postNo);
+
+  let post: Awaited<ReturnType<typeof fetchPostDetailFromApi>> = null;
+  let loadError: string | null = null;
+  try {
+    post = await fetchPostDetailFromApi(postNo);
+  } catch (e) {
+    loadError =
+      e instanceof Error ? e.message : "記事 API の取得に失敗しました。";
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto w-full max-w-lg px-5 py-12 md:px-8">
+        <nav className="mb-8 text-sm">
+          <Link
+            href="/posts"
+            className="font-medium text-accent hover:text-accent-dark dark:text-accent-light"
+          >
+            ← 記事一覧
+          </Link>
+        </nav>
+        <div
+          className="rounded-xl border border-amber-200/90 bg-amber-50/90 p-4 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
+          role="alert"
+        >
+          <p className="font-medium">記事を読み込めませんでした</p>
+          <p className="mt-2 text-amber-900/90 dark:text-amber-200/90">
+            {loadError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!post) {
     notFound();
   }
@@ -61,7 +100,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500 dark:text-ink-400">
             <time
-              dateTime={post.postDate.toISOString()}
+              dateTime={post.postDate}
               className="font-medium text-ink-600 dark:text-ink-300"
             >
               {formatDate(post.postDate)}
