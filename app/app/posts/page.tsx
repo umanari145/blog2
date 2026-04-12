@@ -45,10 +45,15 @@ export default async function PostsPage() {
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-500 dark:text-ink-400">
           開発・インフラ・言語まわりのメモを時系列で並べています。データは
           MySQL（Prisma）から取得しています。
+          {!loadError && (
+            <span className="mt-2 block font-medium text-ink-600 dark:text-ink-300">
+              登録記事: {posts.length} 件
+            </span>
+          )}
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-ink-600 shadow-sm ring-1 ring-ink-200/80 dark:bg-ink-800/80 dark:text-ink-300 dark:ring-ink-600">
-            {loadError ? "—" : `${posts.length} 件を表示`}
+            {loadError ? "—" : `記事 ${posts.length} 件`}
           </span>
           <span className="inline-flex items-center rounded-full bg-accent-muted/90 px-3 py-1 text-xs font-medium text-accent-dark dark:bg-accent-dark/40 dark:text-accent-light">
             カードから詳細へ
