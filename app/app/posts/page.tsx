@@ -1,14 +1,49 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPostList } from "@/lib/data/posts";
+import { getCategoryById } from "@/lib/data/categories";
+import { getPostList, getPostListByCategoryId, type PostListItem } from "@/lib/data/posts";
 
-export const metadata: Metadata = {
-  title: "記事一覧",
-  description: "ブログ記事の一覧ページ",
+type PostsPageProps = {
+  searchParams: Promise<{ categoryId?: string | string[] }>;
 };
 
 /** DB 参照のためビルド時の静的生成は行わない */
 export const dynamic = "force-dynamic";
+
+function parseOptionalCategoryId(
+  raw: string | string[] | undefined,
+): number | null {
+  if (raw == null) return null;
+  const s = (Array.isArray(raw) ? raw[0] : raw).trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number.parseInt(s, 10);
+  if (n < 0) return null;
+  return n;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PostsPageProps): Promise<Metadata> {
+  const sp = await searchParams;
+  const cid = parseOptionalCategoryId(sp.categoryId);
+  if (cid != null) {
+    const cat = await getCategoryById(cid);
+    if (cat) {
+      return {
+        title: `${cat.name}の記事`,
+        description: `カテゴリ「${cat.name}」の記事一覧`,
+      };
+    }
+    return {
+      title: "カテゴリ別記事",
+      description: "指定したカテゴリの記事一覧",
+    };
+  }
+  return {
+    title: "記事一覧",
+    description: "ブログ記事の一覧ページ",
+  };
+}
 
 function formatDate(d: Date) {
   const iso = d.toISOString().slice(0, 10);
@@ -20,18 +55,40 @@ function formatDate(d: Date) {
   }).format(parsed);
 }
 
-export default async function PostsPage() {
-  let posts: Awaited<ReturnType<typeof getPostList>> = [];
+export default async function PostsPage({ searchParams }: PostsPageProps) {
+  const sp = await searchParams;
+  const categoryFilterId = parseOptionalCategoryId(sp.categoryId);
+
+  let posts: PostListItem[] = [];
   let loadError: string | null = null;
+  let categoryName: string | null = null;
 
   try {
-    posts = await getPostList();
+    if (categoryFilterId != null) {
+      const cat = await getCategoryById(categoryFilterId);
+      categoryName = cat?.name ?? null;
+      posts = await getPostListByCategoryId(categoryFilterId);
+    } else {
+      posts = await getPostList();
+    }
   } catch (e) {
     loadError =
       e instanceof Error
         ? e.message
         : "データベースから記事を取得できませんでした。";
   }
+
+  const isFiltered = categoryFilterId != null;
+  const heading = isFiltered
+    ? categoryName
+      ? `カテゴリ: ${categoryName}`
+      : "カテゴリ別記事"
+    : "記事一覧";
+  const subline = isFiltered
+    ? categoryName
+      ? `「${categoryName}」を含む記事のみ表示しています。`
+      : "指定の ID に該当するカテゴリはありません（記事 0 件）。"
+    : "開発・インフラ・言語まわりのメモを時系列で並べています。データは MySQL（Prisma）から取得しています。";
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 md:px-8 md:py-14 lg:max-w-4xl lg:px-12">
@@ -40,23 +97,32 @@ export default async function PostsPage() {
           Journal
         </p>
         <h1 className="bg-gradient-to-br from-ink-900 to-ink-600 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-ink-100 dark:to-ink-400 md:text-4xl">
-          記事一覧
+          {heading}
         </h1>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-500 dark:text-ink-400">
-          開発・インフラ・言語まわりのメモを時系列で並べています。データは
-          MySQL（Prisma）から取得しています。
+          {subline}
           {!loadError && (
             <span className="mt-2 block font-medium text-ink-600 dark:text-ink-300">
-              登録記事: {posts.length} 件
+              {isFiltered ? "該当記事" : "登録記事"}: {posts.length} 件
             </span>
           )}
         </p>
+        {isFiltered && (
+          <p className="mt-3">
+            <Link
+              href="/posts"
+              className="text-sm font-medium text-accent-dark underline-offset-4 hover:underline dark:text-accent-light"
+            >
+              すべての記事を表示
+            </Link>
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap gap-2">
           <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-ink-600 shadow-sm ring-1 ring-ink-200/80 dark:bg-ink-800/80 dark:text-ink-300 dark:ring-ink-600">
             {loadError ? "—" : `記事 ${posts.length} 件`}
           </span>
           <span className="inline-flex items-center rounded-full bg-accent-muted/90 px-3 py-1 text-xs font-medium text-accent-dark dark:bg-accent-dark/40 dark:text-accent-light">
-            カードから詳細へ
+            {isFiltered ? "カテゴリ絞り込み" : "カードから詳細へ"}
           </span>
         </div>
       </header>
@@ -81,8 +147,9 @@ export default async function PostsPage() {
         </div>
       ) : posts.length === 0 ? (
         <p className="text-sm text-ink-500 dark:text-ink-400">
-          まだ記事がありません。`convert/import.ts` でデータを投入するか、Prisma
-          Studio などで追加してください。
+          {isFiltered
+            ? "このカテゴリに該当する記事はまだありません。"
+            : "まだ記事がありません。`convert/import.ts` でデータを投入するか、Prisma Studio などで追加してください。"}
         </p>
       ) : (
         <ul className="flex flex-col gap-6 md:gap-8">

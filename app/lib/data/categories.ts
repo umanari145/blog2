@@ -23,3 +23,13 @@ export async function getCategoriesWithPostCount(): Promise<
     postCount: c._count.posts,
   }));
 }
+
+export async function getCategoryById(
+  id: number,
+): Promise<{ id: number; name: string } | null> {
+  const prisma = getPrisma();
+  return prisma.category.findUnique({
+    where: { id },
+    select: { id: true, name: true },
+  });
+}

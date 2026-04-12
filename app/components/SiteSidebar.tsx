@@ -60,12 +60,15 @@ export async function SiteSidebar() {
             <ul className="flex flex-col gap-1">
               {categories.map((c) => (
                 <li key={c.id}>
-                  <span className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm text-ink-600 dark:text-ink-300">
+                  <Link
+                    href={`/posts?categoryId=${c.id}`}
+                    className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm text-ink-600 transition hover:bg-accent-muted/80 hover:text-accent-dark dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-accent-light"
+                  >
                     <span className="min-w-0 truncate">{c.name}</span>
                     <span className="shrink-0 tabular-nums text-xs text-ink-400 dark:text-ink-500">
                       {c.postCount} 件
                     </span>
-                  </span>
+                  </Link>
                 </li>
               ))}
             </ul>

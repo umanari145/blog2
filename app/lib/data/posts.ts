@@ -66,3 +66,30 @@ export async function getPostList(): Promise<PostListItem[]> {
     tags: p.tags,
   }));
 }
+
+/** 指定カテゴリに紐づく記事のみ（多対多の some フィルタ） */
+export async function getPostListByCategoryId(
+  categoryId: number,
+): Promise<PostListItem[]> {
+  const prisma = getPrisma();
+  const rows = await prisma.post.findMany({
+    where: {
+      categories: { some: { id: categoryId } },
+    },
+    orderBy: { postDate: "desc" },
+    include: {
+      categories: { select: { id: true, name: true } },
+      tags: { select: { id: true, name: true } },
+    },
+  });
+
+  return rows.map((p) => ({
+    id: p.id,
+    postNo: p.postNo,
+    title: p.title,
+    postDate: p.postDate,
+    excerpt: excerptFromContents(p.contents),
+    categories: p.categories,
+    tags: p.tags,
+  }));
+}
