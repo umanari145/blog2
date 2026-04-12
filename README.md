@@ -21,7 +21,7 @@ Next.js を想定したブログ／アプリ用リポジトリです。
 | `app/app/` | Next.js の **App Router**（`layout.tsx`・`page.tsx`・`posts/` など） |
 | `app/components/` | サイト共通 UI（サイドバー・フッター・モバイルヘッダーなど） |
 | `app/lib/` | 共通ロジック（`prisma.ts`・`postExcerpt.ts`・**`data/`** のデータ取得など） |
-| `app/app/api/` | **Route Handler**（`GET /api/posts`・`GET /api/posts/[postNo]`・`GET /api/categories`）。実体は `lib/data` |
+| `app/app/api/` | **Route Handler**（`GET /api/posts`・`GET /api/posts/[postNo]`・`GET /api/categories`・`GET /api/categories/[id]/posts`）。実体は `lib/data` |
 | `app/prisma/` | **`schema.prisma`** と **`migrations/`** |
 | `app/prisma.config.ts` | Prisma CLI 用設定（接続 URL など） |
 | `app/convert/` | JSON から DB へ投入する `import.ts` と `convert/src/` の元データ |

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CategoryPillLink } from "@/components/CategoryPillLink";
 import { fetchPostDetailFromApi } from "@/lib/api/postDetail";
 import { excerptFromContents } from "@/lib/postExcerpt";
 
@@ -114,12 +115,11 @@ export default async function PostDetailPage({ params }: PageProps) {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {post.categories.map((c) => (
-              <span
+              <CategoryPillLink
                 key={c.id}
-                className="rounded-md bg-accent-muted/90 px-2.5 py-0.5 text-[11px] font-semibold text-accent-dark dark:bg-accent-dark/35 dark:text-accent-light"
-              >
-                {c.name}
-              </span>
+                id={c.id}
+                name={c.name}
+              />
             ))}
             {post.tags.map((t) => (
               <span
