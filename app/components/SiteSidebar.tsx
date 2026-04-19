@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { fetchCategoriesFromApi } from "@/lib/api/categoriesFromApi";
+import { fetchTagsFromApi } from "@/lib/api/tagsFromApi";
 import type { CategoryWithPostCount } from "@/lib/data/categories";
+import type { TagWithPostCount } from "@/lib/data/tags";
 
 const nav = [
   { href: "/", label: "ホーム" },
@@ -9,10 +11,16 @@ const nav = [
 
 export async function SiteSidebar() {
   let categories: CategoryWithPostCount[] = [];
+  let tags: TagWithPostCount[] = [];
   try {
     categories = await fetchCategoriesFromApi();
   } catch {
     categories = [];
+  }
+  try {
+    tags = await fetchTagsFromApi();
+  } catch {
+    tags = [];
   }
 
   return (
@@ -75,11 +83,44 @@ export async function SiteSidebar() {
           )}
         </div>
 
+        <div>
+          <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400 dark:text-ink-500">
+            タグ
+          </h2>
+          {tags.length === 0 ? (
+            <p className="px-3 text-xs text-ink-400 dark:text-ink-500">
+              タグを取得できませんでした。DB 接続を確認してください。
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {tags.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    href={`/posts?tagId=${t.id}`}
+                    className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm text-ink-600 transition hover:bg-accent-muted/80 hover:text-accent-dark dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-accent-light"
+                  >
+                    <span className="min-w-0 truncate font-mono text-[13px]">
+                      #{t.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-xs text-ink-400 dark:text-ink-500">
+                      {t.postCount} 件
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="mt-auto rounded-xl border border-dashed border-ink-200/90 bg-ink-50/80 p-4 dark:border-ink-700 dark:bg-ink-800/50">
           <p className="text-[11px] leading-relaxed text-ink-500 dark:text-ink-400">
-            カテゴリは{" "}
+            カテゴリ・タグは{" "}
             <code className="rounded bg-ink-200/60 px-1 dark:bg-ink-700">
               categories
+            </code>{" "}
+            /{" "}
+            <code className="rounded bg-ink-200/60 px-1 dark:bg-ink-700">
+              tags
             </code>{" "}
             テーブルから取得しています。
           </p>

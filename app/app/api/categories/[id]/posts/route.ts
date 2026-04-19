@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPostListByCategoryId } from "@/lib/data/posts";
+import { getPostListFiltered } from "@/lib/data/posts";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export async function GET(
   }
 
   try {
-    const posts = await getPostListByCategoryId(categoryId);
+    const posts = await getPostListFiltered({ categoryId });
     const body = posts.map((p) => ({
       ...p,
       postDate: p.postDate.toISOString(),

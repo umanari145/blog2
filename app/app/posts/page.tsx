@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CategoryPillLink } from "@/components/CategoryPillLink";
+import { TagPillLink } from "@/components/TagPillLink";
 import { getCategoryById } from "@/lib/data/categories";
-import { getPostList, getPostListByCategoryId, type PostListItem } from "@/lib/data/posts";
+import {
+  getPostListFiltered,
+  type PostListFilter,
+  type PostListItem,
+} from "@/lib/data/posts";
+import { getTagById } from "@/lib/data/tags";
 
 type PostsPageProps = {
-  searchParams: Promise<{ categoryId?: string | string[] }>;
+  searchParams: Promise<{
+    categoryId?: string | string[];
+    tagId?: string | string[];
+  }>;
 };
 
 /** DB 参照のためビルド時の静的生成は行わない */
 export const dynamic = "force-dynamic";
 
-function parseOptionalCategoryId(
+function parseOptionalPositiveIntParam(
   raw: string | string[] | undefined,
 ): number | null {
   if (raw == null) return null;
@@ -26,9 +35,30 @@ export async function generateMetadata({
   searchParams,
 }: PostsPageProps): Promise<Metadata> {
   const sp = await searchParams;
-  const cid = parseOptionalCategoryId(sp.categoryId);
+  const cid = parseOptionalPositiveIntParam(sp.categoryId);
+  const tid = parseOptionalPositiveIntParam(sp.tagId);
+
+  if (cid == null && tid == null) {
+    return {
+      title: "記事一覧",
+      description: "ブログ記事の一覧ページ",
+    };
+  }
+
+  const [cat, tag] = await Promise.all([
+    cid != null ? getCategoryById(cid) : Promise.resolve(null),
+    tid != null ? getTagById(tid) : Promise.resolve(null),
+  ]);
+
+  if (cid != null && tid != null) {
+    const cname = cat?.name ?? "カテゴリ";
+    const tname = tag?.name ?? "タグ";
+    return {
+      title: `${cname}・#${tname}の記事`,
+      description: `カテゴリ「${cname}」かつタグ「#${tname}」の記事一覧。`,
+    };
+  }
   if (cid != null) {
-    const cat = await getCategoryById(cid);
     if (cat) {
       return {
         title: `${cat.name}の記事`,
@@ -40,9 +70,15 @@ export async function generateMetadata({
       description: "指定したカテゴリの記事一覧",
     };
   }
+  if (tag) {
+    return {
+      title: `#${tag.name}の記事`,
+      description: `タグ「#${tag.name}」の記事一覧`,
+    };
+  }
   return {
-    title: "記事一覧",
-    description: "ブログ記事の一覧ページ",
+    title: "タグ別記事",
+    description: "指定したタグの記事一覧",
   };
 }
 
@@ -58,20 +94,28 @@ function formatDate(d: Date) {
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const sp = await searchParams;
-  const categoryFilterId = parseOptionalCategoryId(sp.categoryId);
+  const categoryFilterId = parseOptionalPositiveIntParam(sp.categoryId);
+  const tagFilterId = parseOptionalPositiveIntParam(sp.tagId);
 
   let posts: PostListItem[] = [];
   let loadError: string | null = null;
   let categoryName: string | null = null;
+  let tagName: string | null = null;
+
+  const filter: PostListFilter = {};
+  if (categoryFilterId != null) filter.categoryId = categoryFilterId;
+  if (tagFilterId != null) filter.tagId = tagFilterId;
 
   try {
     if (categoryFilterId != null) {
       const cat = await getCategoryById(categoryFilterId);
       categoryName = cat?.name ?? null;
-      posts = await getPostListByCategoryId(categoryFilterId);
-    } else {
-      posts = await getPostList();
     }
+    if (tagFilterId != null) {
+      const tag = await getTagById(tagFilterId);
+      tagName = tag?.name ?? null;
+    }
+    posts = await getPostListFiltered(filter);
   } catch (e) {
     loadError =
       e instanceof Error
@@ -79,17 +123,62 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         : "データベースから記事を取得できませんでした。";
   }
 
-  const isFiltered = categoryFilterId != null;
-  const heading = isFiltered
-    ? categoryName
-      ? `カテゴリ: ${categoryName}`
-      : "カテゴリ別記事"
-    : "記事一覧";
-  const subline = isFiltered
-    ? categoryName
+  const hasCatFilter = categoryFilterId != null;
+  const hasTagFilter = tagFilterId != null;
+  const isFiltered = hasCatFilter || hasTagFilter;
+
+  let heading: string;
+  if (hasCatFilter && hasTagFilter) {
+    heading =
+      categoryName && tagName
+        ? `カテゴリ: ${categoryName} / タグ: #${tagName}`
+        : "絞り込み結果";
+  } else if (hasCatFilter) {
+    heading = categoryName ? `カテゴリ: ${categoryName}` : "カテゴリ別記事";
+  } else if (hasTagFilter) {
+    heading = tagName ? `タグ: #${tagName}` : "タグ別記事";
+  } else {
+    heading = "記事一覧";
+  }
+
+  let subline: string;
+  if (hasCatFilter && hasTagFilter) {
+    subline =
+      categoryName && tagName
+        ? `「${categoryName}」かつ「#${tagName}」の両方を含む記事のみ表示しています。`
+        : "指定のカテゴリ・タグの組み合わせに該当する記事を表示しています。";
+  } else if (hasCatFilter) {
+    subline = categoryName
       ? `「${categoryName}」を含む記事のみ表示しています。`
-      : "指定の ID に該当するカテゴリはありません（記事 0 件）。"
-    : "開発・インフラ・言語まわりのメモを時系列で並べています。データは MySQL（Prisma）から取得しています。";
+      : "指定の ID に該当するカテゴリはありません（記事 0 件）。";
+  } else if (hasTagFilter) {
+    subline = tagName
+      ? `「#${tagName}」を含む記事のみ表示しています。`
+      : "指定の ID に該当するタグはありません（記事 0 件）。";
+  } else {
+    subline =
+      "開発・インフラ・言語まわりのメモを時系列で並べています。データは MySQL（Prisma）から取得しています。";
+  }
+
+  const filterBadgeLabel = (() => {
+    if (hasCatFilter && hasTagFilter) return "カテゴリ＋タグ絞り込み";
+    if (hasCatFilter) return "カテゴリ絞り込み";
+    if (hasTagFilter) return "タグ絞り込み";
+    return "カードから詳細へ";
+  })();
+
+  const emptyFilteredMessage = (() => {
+    if (hasCatFilter && hasTagFilter) {
+      return "この条件に該当する記事はまだありません。";
+    }
+    if (hasCatFilter) {
+      return "このカテゴリに該当する記事はまだありません。";
+    }
+    if (hasTagFilter) {
+      return "このタグに該当する記事はまだありません。";
+    }
+    return "";
+  })();
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 md:px-8 md:py-14 lg:max-w-4xl lg:px-12">
@@ -123,7 +212,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             {loadError ? "—" : `記事 ${posts.length} 件`}
           </span>
           <span className="inline-flex items-center rounded-full bg-accent-muted/90 px-3 py-1 text-xs font-medium text-accent-dark dark:bg-accent-dark/40 dark:text-accent-light">
-            {isFiltered ? "カテゴリ絞り込み" : "カードから詳細へ"}
+            {filterBadgeLabel}
           </span>
         </div>
       </header>
@@ -149,7 +238,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ) : posts.length === 0 ? (
         <p className="text-sm text-ink-500 dark:text-ink-400">
           {isFiltered
-            ? "このカテゴリに該当する記事はまだありません。"
+            ? emptyFilteredMessage
             : "まだ記事がありません。`convert/import.ts` でデータを投入するか、Prisma Studio などで追加してください。"}
         </p>
       ) : (
@@ -198,12 +287,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                     />
                   ))}
                   {post.tags.map((t) => (
-                    <span
+                    <TagPillLink
                       key={t.id}
-                      className="rounded-md bg-ink-100/90 px-2.5 py-0.5 text-[11px] font-medium text-ink-600 ring-1 ring-ink-200/80 dark:bg-ink-700/80 dark:text-ink-300 dark:ring-ink-600"
-                    >
-                      #{t.name}
-                    </span>
+                      id={t.id}
+                      name={t.name}
+                      current={tagFilterId != null && t.id === tagFilterId}
+                    />
                   ))}
                 </div>
               </article>

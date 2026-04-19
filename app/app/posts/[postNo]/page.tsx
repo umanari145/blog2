@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CategoryPillLink } from "@/components/CategoryPillLink";
+import { TagPillLink } from "@/components/TagPillLink";
 import { fetchPostDetailFromApi } from "@/lib/api/postDetail";
 import { excerptFromContents } from "@/lib/postExcerpt";
 
@@ -122,12 +123,7 @@ export default async function PostDetailPage({ params }: PageProps) {
               />
             ))}
             {post.tags.map((t) => (
-              <span
-                key={t.id}
-                className="rounded-md bg-ink-100/90 px-2.5 py-0.5 text-[11px] font-medium text-ink-600 ring-1 ring-ink-200/80 dark:bg-ink-700/80 dark:text-ink-300 dark:ring-ink-600"
-              >
-                #{t.name}
-              </span>
+              <TagPillLink key={t.id} id={t.id} name={t.name} />
             ))}
           </div>
         </header>
