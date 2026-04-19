@@ -56,6 +56,25 @@ export async function getPostList(): Promise<PostListItem[]> {
     },
   });
 
+  return mapPostRows(rows);
+}
+
+export type PostListFilter = {
+  categoryId?: number;
+  tagId?: number;
+};
+
+function mapPostRows(
+  rows: {
+    id: string;
+    postNo: string;
+    title: string;
+    contents: string;
+    postDate: Date;
+    categories: { id: number; name: string }[];
+    tags: { id: number; name: string }[];
+  }[],
+): PostListItem[] {
   return rows.map((p) => ({
     id: p.id,
     postNo: p.postNo,
@@ -67,15 +86,30 @@ export async function getPostList(): Promise<PostListItem[]> {
   }));
 }
 
-/** 指定カテゴリに紐づく記事のみ（多対多の some フィルタ） */
-export async function getPostListByCategoryId(
-  categoryId: number,
+/** カテゴリ・タグのいずれかまたは両方で絞り込み（未指定なら全件＝ getPostList と同等） */
+export async function getPostListFiltered(
+  filter: PostListFilter,
 ): Promise<PostListItem[]> {
+  const hasCat = filter.categoryId != null;
+  const hasTag = filter.tagId != null;
+  if (!hasCat && !hasTag) {
+    return getPostList();
+  }
+
   const prisma = getPrisma();
+  const where: {
+    categories?: { some: { id: number } };
+    tags?: { some: { id: number } };
+  } = {};
+  if (hasCat) {
+    where.categories = { some: { id: filter.categoryId! } };
+  }
+  if (hasTag) {
+    where.tags = { some: { id: filter.tagId! } };
+  }
+
   const rows = await prisma.post.findMany({
-    where: {
-      categories: { some: { id: categoryId } },
-    },
+    where,
     orderBy: { postDate: "desc" },
     include: {
       categories: { select: { id: true, name: true } },
@@ -83,13 +117,5 @@ export async function getPostListByCategoryId(
     },
   });
 
-  return rows.map((p) => ({
-    id: p.id,
-    postNo: p.postNo,
-    title: p.title,
-    postDate: p.postDate,
-    excerpt: excerptFromContents(p.contents),
-    categories: p.categories,
-    tags: p.tags,
-  }));
+  return mapPostRows(rows);
 }
