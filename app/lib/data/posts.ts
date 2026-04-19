@@ -64,6 +64,41 @@ export type PostListFilter = {
   tagId?: number;
 };
 
+/** 記事一覧ページの 1 ページあたり件数 */
+export const POST_LIST_PAGE_SIZE = 10;
+
+export type PagedPostList = {
+  items: PostListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+function buildFilterWhere(
+  filter: PostListFilter,
+):
+  | {
+      categories?: { some: { id: number } };
+      tags?: { some: { id: number } };
+    }
+  | undefined {
+  const hasCat = filter.categoryId != null;
+  const hasTag = filter.tagId != null;
+  if (!hasCat && !hasTag) return undefined;
+  const where: {
+    categories?: { some: { id: number } };
+    tags?: { some: { id: number } };
+  } = {};
+  if (hasCat) {
+    where.categories = { some: { id: filter.categoryId! } };
+  }
+  if (hasTag) {
+    where.tags = { some: { id: filter.tagId! } };
+  }
+  return where;
+}
+
 function mapPostRows(
   rows: {
     id: string;
@@ -90,24 +125,12 @@ function mapPostRows(
 export async function getPostListFiltered(
   filter: PostListFilter,
 ): Promise<PostListItem[]> {
-  const hasCat = filter.categoryId != null;
-  const hasTag = filter.tagId != null;
-  if (!hasCat && !hasTag) {
+  const where = buildFilterWhere(filter);
+  if (where == null) {
     return getPostList();
   }
 
   const prisma = getPrisma();
-  const where: {
-    categories?: { some: { id: number } };
-    tags?: { some: { id: number } };
-  } = {};
-  if (hasCat) {
-    where.categories = { some: { id: filter.categoryId! } };
-  }
-  if (hasTag) {
-    where.tags = { some: { id: filter.tagId! } };
-  }
-
   const rows = await prisma.post.findMany({
     where,
     orderBy: { postDate: "desc" },
@@ -118,4 +141,44 @@ export async function getPostListFiltered(
   });
 
   return mapPostRows(rows);
+}
+
+/**
+ * 記事一覧（ページング）。`filter` が空なら全件対象。
+ * 存在しないページ番号は最終ページに丸めます。
+ */
+export async function getPostListFilteredPage(
+  filter: PostListFilter,
+  requestedPage: number,
+  pageSize: number = POST_LIST_PAGE_SIZE,
+): Promise<PagedPostList> {
+  const prisma = getPrisma();
+  const where = buildFilterWhere(filter) ?? {};
+  const safeSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
+  const total = await prisma.post.count({ where });
+  const totalPages = total === 0 ? 1 : Math.ceil(total / safeSize);
+
+  let page = Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1;
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  const skip = (page - 1) * safeSize;
+
+  const rows = await prisma.post.findMany({
+    where,
+    orderBy: { postDate: "desc" },
+    skip,
+    take: safeSize,
+    include: {
+      categories: { select: { id: true, name: true } },
+      tags: { select: { id: true, name: true } },
+    },
+  });
+
+  return {
+    items: mapPostRows(rows),
+    total,
+    page,
+    pageSize: safeSize,
+    totalPages,
+  };
 }

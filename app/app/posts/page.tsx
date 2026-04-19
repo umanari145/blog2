@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CategoryPillLink } from "@/components/CategoryPillLink";
+import { PostListPager } from "@/components/PostListPager";
 import { TagPillLink } from "@/components/TagPillLink";
 import { getCategoryById } from "@/lib/data/categories";
 import {
-  getPostListFiltered,
+  getPostListFilteredPage,
+  POST_LIST_PAGE_SIZE,
   type PostListFilter,
   type PostListItem,
 } from "@/lib/data/posts";
@@ -14,6 +16,7 @@ type PostsPageProps = {
   searchParams: Promise<{
     categoryId?: string | string[];
     tagId?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -28,6 +31,12 @@ function parseOptionalPositiveIntParam(
   if (!/^\d+$/.test(s)) return null;
   const n = Number.parseInt(s, 10);
   if (n < 0) return null;
+  return n;
+}
+
+function parsePageParam(raw: string | string[] | undefined): number {
+  const n = parseOptionalPositiveIntParam(raw);
+  if (n == null || n < 1) return 1;
   return n;
 }
 
@@ -96,8 +105,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const sp = await searchParams;
   const categoryFilterId = parseOptionalPositiveIntParam(sp.categoryId);
   const tagFilterId = parseOptionalPositiveIntParam(sp.tagId);
+  const requestedPage = parsePageParam(sp.page);
 
   let posts: PostListItem[] = [];
+  let total = 0;
+  let page = 1;
+  let totalPages = 1;
   let loadError: string | null = null;
   let categoryName: string | null = null;
   let tagName: string | null = null;
@@ -115,7 +128,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       const tag = await getTagById(tagFilterId);
       tagName = tag?.name ?? null;
     }
-    posts = await getPostListFiltered(filter);
+    const paged = await getPostListFilteredPage(
+      filter,
+      requestedPage,
+      POST_LIST_PAGE_SIZE,
+    );
+    posts = paged.items;
+    total = paged.total;
+    page = paged.page;
+    totalPages = paged.totalPages;
   } catch (e) {
     loadError =
       e instanceof Error
@@ -193,7 +214,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           {subline}
           {!loadError && (
             <span className="mt-2 block font-medium text-ink-600 dark:text-ink-300">
-              {isFiltered ? "該当記事" : "登録記事"}: {posts.length} 件
+              {isFiltered ? "該当記事" : "登録記事"}: {total} 件
+              {total > 0 && (
+                <span className="block text-xs font-normal text-ink-500 dark:text-ink-400">
+                  1 ページ {POST_LIST_PAGE_SIZE} 件表示（{page} / {totalPages}{" "}
+                  ページ目）
+                </span>
+              )}
             </span>
           )}
         </p>
@@ -209,7 +236,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         )}
         <div className="mt-6 flex flex-wrap gap-2">
           <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-ink-600 shadow-sm ring-1 ring-ink-200/80 dark:bg-ink-800/80 dark:text-ink-300 dark:ring-ink-600">
-            {loadError ? "—" : `記事 ${posts.length} 件`}
+            {loadError ? "—" : `記事 ${total} 件`}
           </span>
           <span className="inline-flex items-center rounded-full bg-accent-muted/90 px-3 py-1 text-xs font-medium text-accent-dark dark:bg-accent-dark/40 dark:text-accent-light">
             {filterBadgeLabel}
@@ -235,13 +262,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             ）を確認してください。
           </p>
         </div>
-      ) : posts.length === 0 ? (
+      ) : total === 0 ? (
         <p className="text-sm text-ink-500 dark:text-ink-400">
           {isFiltered
             ? emptyFilteredMessage
             : "まだ記事がありません。`convert/import.ts` でデータを投入するか、Prisma Studio などで追加してください。"}
         </p>
       ) : (
+        <>
         <ul className="flex flex-col gap-6 md:gap-8">
           {posts.map((post, index) => (
             <li key={post.id}>
@@ -299,6 +327,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             </li>
           ))}
         </ul>
+        <PostListPager
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={POST_LIST_PAGE_SIZE}
+          categoryId={categoryFilterId}
+          tagId={tagFilterId}
+        />
+        </>
       )}
     </div>
   );
