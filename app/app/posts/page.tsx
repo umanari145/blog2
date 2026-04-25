@@ -6,6 +6,7 @@ import { TagPillLink } from "@/components/TagPillLink";
 import { getCategoryById } from "@/lib/data/categories";
 import {
   getPostListFilteredPage,
+  normalizePostSearchQuery,
   POST_LIST_PAGE_SIZE,
   type PostListFilter,
   type PostListItem,
@@ -17,8 +18,13 @@ type PostsPageProps = {
     categoryId?: string | string[];
     tagId?: string | string[];
     page?: string | string[];
+    q?: string | string[];
   }>;
 };
+
+function searchHeadingSnippet(q: string): string {
+  return q.length > 32 ? `${q.slice(0, 32)}…` : q;
+}
 
 /** DB 参照のためビルド時の静的生成は行わない */
 export const dynamic = "force-dynamic";
@@ -46,11 +52,20 @@ export async function generateMetadata({
   const sp = await searchParams;
   const cid = parseOptionalPositiveIntParam(sp.categoryId);
   const tid = parseOptionalPositiveIntParam(sp.tagId);
+  const qNorm = normalizePostSearchQuery(sp.q);
 
-  if (cid == null && tid == null) {
+  if (cid == null && tid == null && qNorm == null) {
     return {
       title: "記事一覧",
       description: "ブログ記事の一覧ページ",
+    };
+  }
+
+  if (cid == null && tid == null && qNorm != null) {
+    const short = searchHeadingSnippet(qNorm);
+    return {
+      title: `「${short}」の検索`,
+      description: "タイトル・本文にキーワードを含む記事の一覧です。",
     };
   }
 
@@ -105,6 +120,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const sp = await searchParams;
   const categoryFilterId = parseOptionalPositiveIntParam(sp.categoryId);
   const tagFilterId = parseOptionalPositiveIntParam(sp.tagId);
+  const searchQuery = normalizePostSearchQuery(sp.q);
   const requestedPage = parsePageParam(sp.page);
 
   let posts: PostListItem[] = [];
@@ -118,6 +134,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const filter: PostListFilter = {};
   if (categoryFilterId != null) filter.categoryId = categoryFilterId;
   if (tagFilterId != null) filter.tagId = tagFilterId;
+  if (searchQuery != null) filter.search = searchQuery;
 
   try {
     if (categoryFilterId != null) {
@@ -146,7 +163,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const hasCatFilter = categoryFilterId != null;
   const hasTagFilter = tagFilterId != null;
-  const isFiltered = hasCatFilter || hasTagFilter;
+  const hasSearch = searchQuery != null;
+  const isFiltered = hasCatFilter || hasTagFilter || hasSearch;
+
+  const qSnippet = hasSearch ? searchHeadingSnippet(searchQuery) : "";
 
   let heading: string;
   if (hasCatFilter && hasTagFilter) {
@@ -158,8 +178,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     heading = categoryName ? `カテゴリ: ${categoryName}` : "カテゴリ別記事";
   } else if (hasTagFilter) {
     heading = tagName ? `タグ: #${tagName}` : "タグ別記事";
+  } else if (hasSearch) {
+    heading = `検索: 「${qSnippet}」`;
   } else {
     heading = "記事一覧";
+  }
+  if (hasSearch && (hasCatFilter || hasTagFilter)) {
+    heading = `${heading} · 「${qSnippet}」`;
   }
 
   let subline: string;
@@ -176,19 +201,31 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     subline = tagName
       ? `「#${tagName}」を含む記事のみ表示しています。`
       : "指定の ID に該当するタグはありません（記事 0 件）。";
+  } else if (hasSearch) {
+    subline = `タイトルまたは本文に「${searchQuery}」を含む記事のみ表示しています。`;
   } else {
     subline =
       "開発・インフラ・言語まわりのメモを時系列で並べています。データは MySQL（Prisma）から取得しています。";
   }
+  if (hasSearch && (hasCatFilter || hasTagFilter)) {
+    subline = `${subline} さらにキーワード「${searchQuery}」で絞り込んでいます。`;
+  }
 
   const filterBadgeLabel = (() => {
+    if (hasCatFilter && hasTagFilter && hasSearch) return "カテゴリ＋タグ＋検索";
     if (hasCatFilter && hasTagFilter) return "カテゴリ＋タグ絞り込み";
+    if (hasCatFilter && hasSearch) return "カテゴリ＋検索";
+    if (hasTagFilter && hasSearch) return "タグ＋検索";
     if (hasCatFilter) return "カテゴリ絞り込み";
     if (hasTagFilter) return "タグ絞り込み";
+    if (hasSearch) return "キーワード検索";
     return "カードから詳細へ";
   })();
 
   const emptyFilteredMessage = (() => {
+    if (hasSearch && !hasCatFilter && !hasTagFilter) {
+      return "キーワードに該当する記事はまだありません。";
+    }
     if (hasCatFilter && hasTagFilter) {
       return "この条件に該当する記事はまだありません。";
     }
@@ -312,6 +349,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                       current={
                         categoryFilterId != null && c.id === categoryFilterId
                       }
+                      preserveQuery={{
+                        tagId: tagFilterId,
+                        q: searchQuery ?? null,
+                      }}
                     />
                   ))}
                   {post.tags.map((t) => (
@@ -320,6 +361,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                       id={t.id}
                       name={t.name}
                       current={tagFilterId != null && t.id === tagFilterId}
+                      preserveQuery={{
+                        categoryId: categoryFilterId,
+                        q: searchQuery ?? null,
+                      }}
                     />
                   ))}
                 </div>
@@ -334,6 +379,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           pageSize={POST_LIST_PAGE_SIZE}
           categoryId={categoryFilterId}
           tagId={tagFilterId}
+          searchQuery={searchQuery ?? null}
         />
         </>
       )}

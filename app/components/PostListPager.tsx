@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { postsListHref } from "@/lib/postsListHref";
 
 type PostListPagerProps = {
   page: number;
@@ -7,19 +8,21 @@ type PostListPagerProps = {
   pageSize: number;
   categoryId: number | null;
   tagId: number | null;
+  searchQuery: string | null;
 };
 
 function hrefForPage(
   categoryId: number | null,
   tagId: number | null,
+  searchQuery: string | null,
   targetPage: number,
 ) {
-  const params = new URLSearchParams();
-  if (categoryId != null) params.set("categoryId", String(categoryId));
-  if (tagId != null) params.set("tagId", String(tagId));
-  if (targetPage > 1) params.set("page", String(targetPage));
-  const qs = params.toString();
-  return qs ? `/posts?${qs}` : "/posts";
+  return postsListHref({
+    categoryId,
+    tagId,
+    page: targetPage,
+    q: searchQuery,
+  });
 }
 
 /** 先頭 2 ページ・現在・末尾 2 ページを基準に並べ、飛びがあれば省略 */
@@ -57,6 +60,7 @@ export function PostListPager({
   pageSize,
   categoryId,
   tagId,
+  searchQuery,
 }: PostListPagerProps) {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
@@ -86,7 +90,7 @@ export function PostListPager({
         <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
           {page > 1 ? (
             <Link
-              href={hrefForPage(categoryId, tagId, page - 1)}
+              href={hrefForPage(categoryId, tagId, searchQuery, page - 1)}
               className={navBtnClass}
               rel="prev"
             >
@@ -124,7 +128,7 @@ export function PostListPager({
                 <Link
                   key={seg.n}
                   role="listitem"
-                  href={hrefForPage(categoryId, tagId, seg.n)}
+                  href={hrefForPage(categoryId, tagId, searchQuery, seg.n)}
                   className={pageLinkClass}
                 >
                   {seg.n}
@@ -135,7 +139,7 @@ export function PostListPager({
 
           {page < totalPages ? (
             <Link
-              href={hrefForPage(categoryId, tagId, page + 1)}
+              href={hrefForPage(categoryId, tagId, searchQuery, page + 1)}
               className={navBtnClass}
               rel="next"
             >

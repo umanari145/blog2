@@ -1,12 +1,24 @@
 import Link from "next/link";
+import { postsListHref } from "@/lib/postsListHref";
 
-type Props = { id: number; name: string; current?: boolean };
+type PreserveQuery = { categoryId?: number | null; q?: string | null };
+
+type Props = {
+  id: number;
+  name: string;
+  current?: boolean;
+  preserveQuery?: PreserveQuery;
+};
 
 /** 記事一覧・詳細のタグピル。`/posts?tagId=` で同タグの記事一覧へ */
-export function TagPillLink({ id, name, current }: Props) {
+export function TagPillLink({ id, name, current, preserveQuery }: Props) {
   return (
     <Link
-      href={`/posts?tagId=${id}`}
+      href={postsListHref({
+        tagId: id,
+        categoryId: preserveQuery?.categoryId ?? undefined,
+        q: preserveQuery?.q,
+      })}
       aria-current={current ? "page" : undefined}
       className={`inline-flex rounded-md px-2.5 py-0.5 text-[11px] font-medium outline-none ring-accent transition focus-visible:ring-2 ${
         current

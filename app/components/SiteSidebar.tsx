@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { PostsSearchFormFallback } from "@/components/PostsSearchFormFallback";
+import { SidebarSearchForm } from "@/components/PostsSearchForm";
 import { fetchCategoriesFromApi } from "@/lib/api/categoriesFromApi";
 import { fetchTagsFromApi } from "@/lib/api/tagsFromApi";
 import type { CategoryWithPostCount } from "@/lib/data/categories";
@@ -55,6 +58,10 @@ export async function SiteSidebar() {
             </Link>
           ))}
         </nav>
+
+        <Suspense fallback={<PostsSearchFormFallback variant="sidebar" />}>
+          <SidebarSearchForm />
+        </Suspense>
 
         <div>
           <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400 dark:text-ink-500">

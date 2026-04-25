@@ -1,12 +1,25 @@
 import Link from "next/link";
+import { postsListHref } from "@/lib/postsListHref";
 
-type Props = { id: number; name: string; current?: boolean };
+type PreserveQuery = { tagId?: number | null; q?: string | null };
+
+type Props = {
+  id: number;
+  name: string;
+  current?: boolean;
+  /** 記事一覧でタグ・検索語を維持するとき */
+  preserveQuery?: PreserveQuery;
+};
 
 /** 記事一覧・詳細のカテゴリピル。`/posts?categoryId=` で同カテゴリの記事一覧へ */
-export function CategoryPillLink({ id, name, current }: Props) {
+export function CategoryPillLink({ id, name, current, preserveQuery }: Props) {
   return (
     <Link
-      href={`/posts?categoryId=${id}`}
+      href={postsListHref({
+        categoryId: id,
+        tagId: preserveQuery?.tagId ?? undefined,
+        q: preserveQuery?.q,
+      })}
       aria-current={current ? "page" : undefined}
       className={`inline-flex rounded-md px-2.5 py-0.5 text-[11px] font-semibold outline-none ring-accent transition focus-visible:ring-2 ${
         current
